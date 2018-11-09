@@ -3,7 +3,7 @@ import numpy as np
 
 cap = cv2.VideoCapture(0)
 firstFrame = None
-min_area = 300
+min_area = 1000
 trackers = {}
 num_trackers = 0
 tracker_ids_del = []
@@ -35,7 +35,7 @@ def delete_trackers():
     tracker_ids_del = []
 def create_mask(gray_frame, x, y, w, h):
     global firstFrame
-    gray_frame[x:x+w,y:y+h] = firstFrame[x:x+w,y:y+h]
+    gray_frame[x-20:x+w+20,y-20:y+h+20] = firstFrame[x-20:x+w+20,y-20:y+h+20]
 
 if not cap.isOpened():
     print("Error opening video stream")
@@ -66,7 +66,7 @@ while True:
     cv2.imshow("Detection", frame)
     cv2.imshow("Thresh", thresh)
     cv2.imshow("Frame Delta", frameDelta)
-
+    print(num_trackers)
     key = cv2.waitKey(1) & 0xff
     if key == ord("q"):
         break
