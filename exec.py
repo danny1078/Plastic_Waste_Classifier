@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 cap = cv2.VideoCapture(0)
 firstFrame = None
@@ -12,17 +13,21 @@ def create_tracker(image, x, y, w, h):
     trackers[num_trackers].init(image, (x, y, w, h))
     num_trackers += 1
 
-def update_draw_tracker(id, image):
+def update_tracker(id, frame, gray_frame):
     global trackers
-    state, bounding_box = trackers[id].update(image)
+    state, bounding_box = trackers[id].update(frame)
     if state:
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
         (x, y, w, h) = bounding_box
+        create_mask(gray_frame, x, y, w, h)
     else:
-        cv2.putText(image, 'tracking failure detected', (100,80), cv2.FONT_HERSHEY_SIMPLEX, 0.75,(0,0,255),2)
+        cv2.putText(frame, 'tracking failure detected', (100,80), cv2.FONT_HERSHEY_SIMPLEX, 0.75,(0,0,255),2)
         trackers.pop(id)
 
-def create_mask()
+def create_mask(gray_frame, x, y, w, h):
+    global firstFrame
+    gray_frame[x:x+w,y:y+h] = firstFrame[x:x+w,y:y+h]
+
 if not cap.isOpened():
     print("Error opening video stream")
 
@@ -33,10 +38,13 @@ while True:
     text = "No Motion Detected"
     if firstFrame is None:
         firstFrame = gray
+    for tracking_id in trackers:
+        update_tracker(tracking_id, frame, gray)
     frameDelta = cv2.absdiff(firstFrame, gray)
     thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
     cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[1]
+    create_mask(gray)
     for c in cnts:
         if cv2.contourArea(c) < min_area:
             continue
@@ -44,8 +52,6 @@ while True:
         cv2.rectangle(frame, (x,y), (x + w, y + h), (0, 255, 0), 2)
         text = "Motion Detected"
         create_tracker(frame,x, y, w, h)
-    for tracking_id in trackers:
-        update_draw_tracker(tracking_id, frame)
 
     cv2.imshow("Detection", frame)
     cv2.imshow("Thresh", thresh)
