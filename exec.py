@@ -3,16 +3,17 @@ import numpy as np
 
 cap = cv2.VideoCapture(0)
 firstFrame = None
-min_area = 1000
+min_area = 10000
 trackers = {}
 num_trackers = 0
 tracker_ids_del = []
 
 def create_tracker(image, x, y, w, h):
     global num_trackers
-    trackers[num_trackers] = cv2.TrackerKCF_create()
-    trackers[num_trackers].init(image, (x, y, w, h))
-    num_trackers += 1
+    if num_trackers <=5:
+        trackers[num_trackers] = cv2.TrackerMedianFlow_create()
+        trackers[num_trackers].init(image, (x, y, w, h))
+        num_trackers += 1
 
 def update_tracker(id, frame, gray_frame):
     global trackers
@@ -30,12 +31,14 @@ def update_tracker(id, frame, gray_frame):
         tracker_ids_del.append(id)
 def delete_trackers():
     global tracker_ids_del
+    global num_trackers
     for id in tracker_ids_del:
         trackers.pop(id)
+        num_trackers-=1
     tracker_ids_del = []
 def create_mask(gray_frame, x, y, w, h):
     global firstFrame
-    gray_frame[x-20:x+w+20,y-20:y+h+20] = firstFrame[x-20:x+w+20,y-20:y+h+20]
+    gray_frame[x-100:x+w+100,y-100:y+h+100] = firstFrame[x-100:x+w+100,y-100:y+h+100]
 
 if not cap.isOpened():
     print("Error opening video stream")
