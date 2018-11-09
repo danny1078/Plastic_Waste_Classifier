@@ -6,6 +6,7 @@ firstFrame = None
 min_area = 300
 trackers = {}
 num_trackers = 0
+tracker_ids_del = []
 
 def create_tracker(image, x, y, w, h):
     global num_trackers
@@ -17,13 +18,21 @@ def update_tracker(id, frame, gray_frame):
     global trackers
     state, bounding_box = trackers[id].update(frame)
     if state:
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
         (x, y, w, h) = bounding_box
+        x = int(x)
+        y = int(y)
+        w = int(w)
+        h = int(h)
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
         create_mask(gray_frame, x, y, w, h)
     else:
         cv2.putText(frame, 'tracking failure detected', (100,80), cv2.FONT_HERSHEY_SIMPLEX, 0.75,(0,0,255),2)
+        tracker_ids_del.append(id)
+def delete_trackers():
+    global tracker_ids_del
+    for id in tracker_ids_del:
         trackers.pop(id)
-
+    tracker_ids_del = []
 def create_mask(gray_frame, x, y, w, h):
     global firstFrame
     gray_frame[x:x+w,y:y+h] = firstFrame[x:x+w,y:y+h]
@@ -38,13 +47,14 @@ while True:
     text = "No Motion Detected"
     if firstFrame is None:
         firstFrame = gray
-    for tracking_id in trackers:
-        update_tracker(tracking_id, frame, gray)
+    if num_trackers is not 0:
+        for tracking_id in trackers:
+            update_tracker(tracking_id, frame, gray)
+        delete_trackers()
     frameDelta = cv2.absdiff(firstFrame, gray)
     thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
     cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[1]
-    create_mask(gray)
     for c in cnts:
         if cv2.contourArea(c) < min_area:
             continue
