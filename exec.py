@@ -9,8 +9,7 @@ trackers = {}
 num_trackers = 0
 tracker_ids_del = []
 time_detected_init = None
-time_detected_current = time_detected_init-time.time()
-time_thres = 3000
+time_thres = 5
 detected = False
 
 
@@ -68,25 +67,29 @@ while True:
     for c in cnts:
         if cv2.contourArea(c) < min_area:
             continue
-        else:
+        elif cv2.contourArea(c) > min_area:
             detected = True
             if time_detected_init is None:
                 time_detected_init = time.time()
             else:
-                if time_detected_current > time_thres:
+                if time.time()- time_detected_init > time_thres:
                     (x,y,w,h) = cv2.boundingRect(c)
                     cv2.rectangle(frame, (x,y), (x + w, y + h), (0, 255, 0), 2)
-                    text = "Motion Detected"
+                    cv2.putText(frame, 'detected', (100, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
+                    cv2.imshow("Detection", frame)
                     create_tracker(frame,x, y, w, h)
 
     if not detected:
         time_detected_init = None
-    cv2.putText(frame, 'time detected {}'.format(time_detected_current), (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
+    detected = False
+    if time_detected_init is not None:
+        cv2.putText(frame, 'time detected {}'.format(time.time() - time_detected_init), (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
     cv2.imshow("Detection", frame)
     cv2.imshow("Thresh", thresh)
     cv2.imshow("Frame Delta", frameDelta)
     print(num_trackers)
     key = cv2.waitKey(1) & 0xff
+
     if key == ord("q"):
         break
 cv2.destroyAllWindows()
