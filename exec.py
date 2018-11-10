@@ -1,5 +1,6 @@
 import cv2
 import time
+from keras.models import load_model
 import numpy as np
 
 cap = cv2.VideoCapture(0)
@@ -11,7 +12,13 @@ tracker_ids_del = []
 time_detected_init = None
 time_thres = 5
 detected = False
+model = load_model('/Users/Danny Han/Desktop/Plastic_Waste_Identifier_Project/Models/VGG_Final.h5')
 
+def classify_object(imarr):
+    imarr = np.expand_dims(imarr, axis=0)/255.
+    obj_type = model.predict(imarr)
+
+    return obj_type
 
 def create_tracker(image, x, y, w, h):
     global num_trackers
@@ -19,6 +26,11 @@ def create_tracker(image, x, y, w, h):
         trackers[num_trackers] = cv2.TrackerMedianFlow_create()
         trackers[num_trackers].init(image, (x, y, w, h))
         num_trackers += 1
+        cropped_img = image[x:x + w, y:y + h]
+        resized_cropped_img = cv2.resize(cropped_img,(400,400))
+        obj_type = classify_object(resized_cropped_img)
+        cv2.putText("{}".format(obj_type), frame)
+
 
 def update_tracker(id, frame, gray_frame):
     global trackers
@@ -48,7 +60,6 @@ def create_mask(gray_frame,    x, y, w, h):
 
 if not cap.isOpened():
     print("Error opening video stream")
-
 while True:
     ret, frame = cap.read()
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
