@@ -69,7 +69,7 @@ while True:
     cv2.imshow("Detection", frame)
     cv2.imshow("Thresh", thresh)
     cv2.imshow("Frame Delta", frameDelta)
-    print(num_trackers)
+    print(num_trackers, tracker_ids_del)
     key = cv2.waitKey(1) & 0xff
     if key == ord("q"):
         break
