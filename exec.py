@@ -11,6 +11,7 @@ tracker_ids_del = []
 time_detected_init = None
 time_detected_current = time_detected_init-time.time()
 time_thres = 3000
+detected = False
 
 
 def create_tracker(image, x, y, w, h):
@@ -40,9 +41,9 @@ def delete_trackers():
     print(tracker_ids_del)
     for id in tracker_ids_del:
         trackers.pop(id)
-        num_trackers-=1
+        num_trackers -= 1
     tracker_ids_del = []
-def create_mask(gray_frame, x, y, w, h):
+def create_mask(gray_frame,    x, y, w, h):
     global firstFrame
     gray_frame[x-100:x+w+100,y-100:y+h+100] = firstFrame[x-100:x+w+100,y-100:y+h+100]
 
@@ -68,7 +69,8 @@ while True:
         if cv2.contourArea(c) < min_area:
             continue
         else:
-            if time_detected_init = None:
+            detected = True
+            if time_detected_init is None:
                 time_detected_init = time.time()
             else:
                 if time_detected_current > time_thres:
@@ -77,6 +79,9 @@ while True:
                     text = "Motion Detected"
                     create_tracker(frame,x, y, w, h)
     cv2.putText(frame, 'time detected {}'.format(time_detected_current), (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
+    if not detected:
+        time_detected_init = None
+
     cv2.imshow("Detection", frame)
     cv2.imshow("Thresh", thresh)
     cv2.imshow("Frame Delta", frameDelta)
