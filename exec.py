@@ -1,12 +1,17 @@
 import cv2
+import time
 import numpy as np
 
 cap = cv2.VideoCapture(0)
 firstFrame = None
-min_area = 10000
+min_area = 20000
 trackers = {}
 num_trackers = 0
 tracker_ids_del = []
+time_detected_init = None
+time_detected_current = time_detected_init-time.time()
+time_thres = 3000
+
 
 def create_tracker(image, x, y, w, h):
     global num_trackers
@@ -32,6 +37,7 @@ def update_tracker(id, frame, gray_frame):
 def delete_trackers():
     global tracker_ids_del
     global num_trackers
+    print(tracker_ids_del)
     for id in tracker_ids_del:
         trackers.pop(id)
         num_trackers-=1
@@ -61,15 +67,20 @@ while True:
     for c in cnts:
         if cv2.contourArea(c) < min_area:
             continue
-        (x,y,w,h) = cv2.boundingRect(c)
-        cv2.rectangle(frame, (x,y), (x + w, y + h), (0, 255, 0), 2)
-        text = "Motion Detected"
-        create_tracker(frame,x, y, w, h)
-
+        else:
+            if time_detected_init = None:
+                time_detected_init = time.time()
+            else:
+                if time_detected_current > time_thres:
+                     (x,y,w,h) = cv2.boundingRect(c)
+                    cv2.rectangle(frame, (x,y), (x + w, y + h), (0, 255, 0), 2)
+                    text = "Motion Detected"
+                    create_tracker(frame,x, y, w, h)
+    cv2.putText(frame, 'time detected {}'.format(time_detected_current), (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
     cv2.imshow("Detection", frame)
     cv2.imshow("Thresh", thresh)
     cv2.imshow("Frame Delta", frameDelta)
-    print(num_trackers, tracker_ids_del)
+    print(num_trackers)
     key = cv2.waitKey(1) & 0xff
     if key == ord("q"):
         break
