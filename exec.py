@@ -13,10 +13,13 @@ time_detected_init = None
 time_thres = 5
 detected = False
 model = load_model('/Users/Danny Han/Desktop/Plastic_Waste_Identifier_Project/Models/VGG_Final.h5')
+classes = ['PET', 'HDPE', 'LDPE', 'PVC', 'PP', 'PS', "OTHERS"]
+
 
 def classify_object(imarr):
     imarr = np.expand_dims(imarr, axis=0)/255.
-    obj_type = model.predict(imarr)
+    pred = model.predict_classes(imarr)
+    obj_type = classes[pred[0]]
 
     return obj_type
 
