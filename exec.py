@@ -2,6 +2,7 @@ import cv2
 import time
 from keras.models import load_model
 import numpy as np
+import serial
 
 cap = cv2.VideoCapture(0)
 firstFrame = None
@@ -10,10 +11,11 @@ trackers = {}
 num_trackers = 0
 tracker_ids_del = []
 time_detected_init = None
-time_thres = 5
+time_thres = 2
 detected = False
 model = load_model('/Users/Danny Han/Desktop/Plastic_Waste_Identifier_Project/Models/VGG_Final.h5')
-classes = ['PET', 'HDPE', 'LDPE', 'PVC', 'PP', 'PS', "OTHERS"]
+classes = ['HDPE', 'LDPE', 'OTHERS', 'PET', 'PP', 'PS', 'PVC']
+arduino = 
 
 
 def classify_object(imarr):
@@ -25,25 +27,30 @@ def classify_object(imarr):
 
 def create_tracker(image, x, y, w, h):
     global num_trackers
+    global time_detected_init
     if num_trackers <=5:
-        trackers[num_trackers] = cv2.TrackerMedianFlow_create()
-        trackers[num_trackers].init(image, (x, y, w, h))
-        num_trackers += 1
+        trackers[num_trackers] = []
+        trackers[num_trackers].append(cv2.TrackerMedianFlow_create())
+        trackers[num_trackers][0].init(image, (x, y, w, h))
         cropped_img = image[x:x + w, y:y + h]
         resized_cropped_img = cv2.resize(cropped_img,(400,400))
         obj_type = classify_object(resized_cropped_img)
-        cv2.putText("{}".format(obj_type), frame)
+        trackers[num_trackers].append(obj_type)
+        trackers[num_trackers].append((x, y, w, h))
+        num_trackers += 1
+        time_detected_init = None
 
 
 def update_tracker(id, frame, gray_frame):
     global trackers
-    state, bounding_box = trackers[id].update(frame)
+    state, bounding_box = trackers[id][0].update(frame)
     if state:
         (x, y, w, h) = bounding_box
         x = int(x)
         y = int(y)
         w = int(w)
         h = int(h)
+        trackers[id][2] = (x, y, w, h)
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
         create_mask(gray_frame, x, y, w, h)
     else:
@@ -75,7 +82,7 @@ while True:
             update_tracker(tracking_id, frame, gray)
         delete_trackers()
     frameDelta = cv2.absdiff(firstFrame, gray)
-    thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
+    thresh = cv2.threshold(frameDelta, 10, 255, cv2.THRESH_BINARY)[1]
     cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[1]
     for c in cnts:
@@ -90,14 +97,16 @@ while True:
                     (x,y,w,h) = cv2.boundingRect(c)
                     cv2.rectangle(frame, (x,y), (x + w, y + h), (0, 255, 0), 2)
                     cv2.putText(frame, 'detected', (100, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
-                    cv2.imshow("Detection", frame)
-                    create_tracker(frame,x, y, w, h)
+                    create_tracker(frame, x, y, w, h)
 
     if not detected:
         time_detected_init = None
     detected = False
     if time_detected_init is not None:
         cv2.putText(frame, 'time detected {}'.format(time.time() - time_detected_init), (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
+    for id in trackers:
+        (x, y, w, h) = trackers[id][2]
+        cv2.putText(frame,'Object type = {}'.format(trackers[id][1]), (x, y+20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2 )
     cv2.imshow("Detection", frame)
     cv2.imshow("Thresh", thresh)
     cv2.imshow("Frame Delta", frameDelta)
