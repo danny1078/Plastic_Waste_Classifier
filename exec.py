@@ -6,16 +6,17 @@ import serial
 
 cap = cv2.VideoCapture(0)
 firstFrame = None
-min_area = 20000
+min_area = 1000
 trackers = {}
 num_trackers = 0
 tracker_ids_del = []
 time_detected_init = None
-time_thres = 2
+time_thres = 0.25
 detected = False
-model = load_model('/Users/Danny Han/Desktop/Plastic_Waste_Identifier_Project/Models/VGG_Final.h5')
+model = load_model('/Users/Danny Han/Desktop/Plastic_Waste_Identifier_Project/Models/Xception_Trial_4deswf.h5')
 classes = ['HDPE', 'LDPE', 'OTHERS', 'PET', 'PP', 'PS', 'PVC']
-arduino = 
+fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history = 200, backgroundRatio= 0.85)
+#arduino = serial.Serial('COM3', 9600)
 
 
 def classify_object(imarr):
@@ -64,16 +65,20 @@ def delete_trackers():
         trackers.pop(id)
         num_trackers -= 1
     tracker_ids_del = []
-def create_mask(gray_frame,    x, y, w, h):
+def create_mask(gray_frame,x, y, w, h):
     global firstFrame
     gray_frame[x-100:x+w+100,y-100:y+h+100] = firstFrame[x-100:x+w+100,y-100:y+h+100]
 
 if not cap.isOpened():
     print("Error opening video stream")
+
+
+
 while True:
+    #arduino.write(('1'.encode("utf-8")))
     ret, frame = cap.read()
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray,(21,21),0)
+    gray = cv2.GaussianBlur(gray, (21, 21), 0)
     text = "No Motion Detected"
     if firstFrame is None:
         firstFrame = gray
@@ -81,9 +86,10 @@ while True:
         for tracking_id in trackers:
             update_tracker(tracking_id, frame, gray)
         delete_trackers()
-    frameDelta = cv2.absdiff(firstFrame, gray)
-    thresh = cv2.threshold(frameDelta, 10, 255, cv2.THRESH_BINARY)[1]
-    cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #frameDelta = cv2.absdiff(firstFrame, gray)
+    #thresh = cv2.threshold(frameDelta, 15, 255, cv2.THRESH_BINARY)[1]
+    fgmask = fgbg.apply(gray)
+    cnts = cv2.findContours(fgmask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[1]
     for c in cnts:
         if cv2.contourArea(c) < min_area:
@@ -108,8 +114,7 @@ while True:
         (x, y, w, h) = trackers[id][2]
         cv2.putText(frame,'Object type = {}'.format(trackers[id][1]), (x, y+20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2 )
     cv2.imshow("Detection", frame)
-    cv2.imshow("Thresh", thresh)
-    cv2.imshow("Frame Delta", frameDelta)
+    cv2.imshow("fgmask", fgmask)
     print(num_trackers)
     key = cv2.waitKey(1) & 0xff
 
