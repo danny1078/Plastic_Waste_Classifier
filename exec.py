@@ -16,7 +16,7 @@ detected = False
 model = load_model('/Users/Danny Han/Desktop/Plastic_Waste_Identifier_Project/Models/Xception_Trial_4deswf.h5')
 classes = ['HDPE', 'LDPE', 'OTHERS', 'PET', 'PP', 'PS', 'PVC']
 fgbg = cv2.bgsegm.createBackgroundSubtractorMOG(history = 200, backgroundRatio= 0.85)
-#arduino = serial.Serial('COM3', 9600)
+arduino = serial.Serial('COM3', 9600)
 
 
 def classify_object(imarr):
@@ -75,7 +75,7 @@ if not cap.isOpened():
 
 
 while True:
-    #arduino.write(('1'.encode("utf-8")))
+    arduino.write(('1'.encode("utf-8")))
     ret, frame = cap.read()
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (21, 21), 0)
